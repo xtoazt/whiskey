@@ -83,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             
             axiosConfig.httpsAgent = agent;
             console.log('Using real HTTP proxy:', proxyUrl);
-          } catch (proxyError) {
+          } catch (proxyError: any) {
             console.log('Failed to create proxy agent, falling back to direct connection:', proxyError.message);
             // Keep the original httpsAgent if proxy fails
           }
