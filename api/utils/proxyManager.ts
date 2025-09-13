@@ -70,7 +70,7 @@ class ProxyManager {
           this.proxies[index].isHealthy = false;
           console.log(`Proxy ${proxy.host}:${proxy.port} returned status ${response.status}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         this.proxies[index].isHealthy = false;
         console.log(`Proxy ${proxy.host}:${proxy.port} failed health check:`, error.message);
       }

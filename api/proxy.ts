@@ -32,9 +32,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Fetching URL:', targetUrl);
     
     // Retry logic with different proxies
-    let lastError = null;
-    let response = null;
-    let selectedProxy = null;
+    let lastError: any = null;
+    let response: any = null;
+    let selectedProxy: any = null;
     const maxRetries = useProxy === 'true' ? 3 : 1;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         
         // Mark proxy as unhealthy if it failed
         if (selectedProxy) {
-          const proxyIndex = proxyManager.getAllProxies().findIndex(p => 
+          const proxyIndex = proxyManager.getAllProxies().findIndex((p: any) => 
             p.host === selectedProxy.host && p.port === selectedProxy.port
           );
           if (proxyIndex !== -1) {
@@ -113,22 +113,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const responseTime = Date.now() - startTime;
 
     // Return response with proxy info
-    res.status(response.status).json({
-      data: response.data,
-      status: response.status,
-      headers: response.headers,
-      responseTime: responseTime,
-      url: targetUrl,
-      method: req.method,
-      proxy: selectedProxy ? {
-        host: selectedProxy.host,
-        port: selectedProxy.port,
-        type: selectedProxy.type,
-        country: selectedProxy.country,
-        speed: selectedProxy.speed
-      } : null,
-      proxyStats: proxyManager.getProxyStats()
-    });
+    if (response) {
+      res.status(response.status).json({
+        data: response.data,
+        status: response.status,
+        headers: response.headers,
+        responseTime: responseTime,
+        url: targetUrl,
+        method: req.method,
+        proxy: selectedProxy ? {
+          host: selectedProxy.host,
+          port: selectedProxy.port,
+          type: selectedProxy.type,
+          country: selectedProxy.country,
+          speed: selectedProxy.speed
+        } : null,
+        proxyStats: proxyManager.getProxyStats()
+      });
+    } else {
+      res.status(500).json({
+        error: 'No response received',
+        message: 'Failed to get response after all retry attempts',
+        proxyStats: proxyManager.getProxyStats()
+      });
+    }
 
   } catch (error: any) {
     console.error('Request failed:', error.message);
