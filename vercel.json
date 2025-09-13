@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "functions": {
+    "api/proxy.ts": {
+      "maxDuration": 30
+    },
+    "api/proxy-info.ts": {
+      "maxDuration": 10
+    },
+    "api/proxy-stats.ts": {
+      "maxDuration": 10
+    },
+    "api/proxy-test.ts": {
+      "maxDuration": 30
+    }
+  },
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/proxy/(.*)",
+      "dest": "/api/proxy"
+    },
+    {
+      "src": "/api/proxy-info",
+      "dest": "/api/proxy-info"
+    },
+    {
+      "src": "/api/proxy-stats",
+      "dest": "/api/proxy-stats"
+    },
+    {
+      "src": "/api/proxy-test",
+      "dest": "/api/proxy-test"
+    }
+  ]
+}
