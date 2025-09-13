@@ -11,7 +11,9 @@
   "dependencies": {
     "@types/node": "^20.0.0",
     "axios": "^1.6.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "https-proxy-agent": "^7.0.2",
+    "http-proxy-agent": "^7.0.0"
   },
   "devDependencies": {
     "@vercel/node": "^3.0.0",

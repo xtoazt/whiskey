@@ -558,6 +558,13 @@
             </select>
         </div>
 
+        <div class="setting-group">
+            <label class="setting-label">Test Proxy</label>
+            <button class="btn btn-go" onclick="testRandomProxy()" style="width: 100%; margin-top: 5px;">
+                Test Random Proxy
+            </button>
+        </div>
+
         <div class="proxy-stats" id="proxy-stats">
             <h4>Proxy Statistics</h4>
             <div class="stat-item">
@@ -901,6 +908,37 @@
             document.getElementById('healthy-proxies').textContent = proxyStats.healthy || '-';
             document.getElementById('unhealthy-proxies').textContent = proxyStats.unhealthy || '-';
             document.getElementById('untested-proxies').textContent = proxyStats.untested || '-';
+        }
+
+        // Test random proxy
+        async function testRandomProxy() {
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            
+            try {
+                // Get a random proxy index
+                const randomIndex = Math.floor(Math.random() * 100); // Assuming we have 100 proxies
+                
+                const response = await fetch(`/api/test-proxy?proxyIndex=${randomIndex}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showError(`✅ Proxy ${data.proxy.host}:${data.proxy.port} is working! Response time: ${data.testResult.responseTime}ms`);
+                    console.log('Proxy test successful:', data);
+                } else {
+                    showError(`❌ Proxy ${data.proxy.host}:${data.proxy.port} failed: ${data.error}`);
+                    console.log('Proxy test failed:', data);
+                }
+            } catch (error) {
+                showError(`❌ Proxy test error: ${error.message}`);
+                console.error('Proxy test error:', error);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
         }
 
         // Show error message

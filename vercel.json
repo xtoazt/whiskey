@@ -12,6 +12,9 @@
     },
     "api/proxy-test.ts": {
       "maxDuration": 30
+    },
+    "api/test-proxy.ts": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
