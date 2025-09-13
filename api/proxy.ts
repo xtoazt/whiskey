@@ -30,6 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Make the request directly (Vercel doesn't support proxy agents)
     const startTime = Date.now();
     
+    console.log('Fetching URL:', targetUrl);
+    
     const response = await axios({
       url: targetUrl,
       method: req.method,
@@ -39,12 +41,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        ...req.headers
+        'Upgrade-Insecure-Requests': '1'
       },
       timeout: 30000,
       maxRedirects: 5,
-      validateStatus: (status: number) => status < 500 // Don't throw on 4xx errors
+      validateStatus: (status: number) => status < 500, // Don't throw on 4xx errors
+      httpsAgent: new (require('https').Agent)({
+        rejectUnauthorized: false // Disable SSL verification for problematic certificates
+      })
     });
 
     const responseTime = Date.now() - startTime;
