@@ -439,6 +439,69 @@
             font-size: 12px;
             color: #888;
         }
+
+        .eruda-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .eruda-toggle:hover {
+            background: #059669;
+        }
+
+        .debug-info {
+            position: fixed;
+            top: 60px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 1000;
+            min-width: 250px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .debug-info.open {
+            display: block;
+        }
+
+        .debug-info h4 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .debug-item {
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .debug-label {
+            color: #888;
+            display: block;
+        }
+
+        .debug-value {
+            color: #fff;
+            font-family: 'Monaco', 'Menlo', monospace;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
@@ -526,6 +589,10 @@
         </div>
     </div>
 
+    <button class="eruda-toggle" id="eruda-toggle" onclick="toggleEruda()">
+        🐛
+    </button>
+
     <button class="dev-tools-toggle" id="dev-tools-toggle" onclick="toggleDevTools()">
         🔧
     </button>
@@ -571,9 +638,33 @@
         </div>
     </div>
 
+    <div class="debug-info" id="debug-info">
+        <h4>Debug Info</h4>
+        <div class="debug-item">
+            <span class="debug-label">Eruda Status:</span>
+            <span class="debug-value" id="eruda-status">Not loaded</span>
+        </div>
+        <div class="debug-item">
+            <span class="debug-label">Console Logs:</span>
+            <span class="debug-value" id="console-logs">0</span>
+        </div>
+        <div class="debug-item">
+            <span class="debug-label">Network Requests:</span>
+            <span class="debug-value" id="network-requests">0</span>
+        </div>
+        <div class="debug-item">
+            <span class="debug-label">Errors:</span>
+            <span class="debug-value" id="error-count">0</span>
+        </div>
+    </div>
+
     <script>
         let currentUrl = '';
         let proxyStats = {};
+        let erudaLoaded = false;
+        let consoleLogCount = 0;
+        let networkRequestCount = 0;
+        let errorCount = 0;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -586,7 +677,52 @@
 
             // Load proxy stats
             loadProxyStats();
+
+            // Initialize debug tracking
+            initializeDebugTracking();
         });
+
+        // Initialize debug tracking
+        function initializeDebugTracking() {
+            // Override console methods to track logs
+            const originalLog = console.log;
+            const originalError = console.error;
+            const originalWarn = console.warn;
+
+            console.log = function(...args) {
+                consoleLogCount++;
+                updateDebugInfo();
+                originalLog.apply(console, args);
+            };
+
+            console.error = function(...args) {
+                consoleLogCount++;
+                errorCount++;
+                updateDebugInfo();
+                originalError.apply(console, args);
+            };
+
+            console.warn = function(...args) {
+                consoleLogCount++;
+                updateDebugInfo();
+                originalWarn.apply(console, args);
+            };
+
+            // Track fetch requests
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                networkRequestCount++;
+                updateDebugInfo();
+                return originalFetch.apply(this, args);
+            };
+        }
+
+        // Update debug info display
+        function updateDebugInfo() {
+            document.getElementById('console-logs').textContent = consoleLogCount;
+            document.getElementById('network-requests').textContent = networkRequestCount;
+            document.getElementById('error-count').textContent = errorCount;
+        }
 
         // Set URL from example
         function setUrl(url) {
@@ -777,6 +913,37 @@
             }, 5000);
         }
 
+        // Toggle Eruda debugger
+        function toggleEruda() {
+            if (!erudaLoaded) {
+                // Load Eruda
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+                document.body.appendChild(script);
+                script.onload = function() {
+                    eruda.init();
+                    erudaLoaded = true;
+                    document.getElementById('eruda-status').textContent = 'Loaded';
+                    console.log('Eruda debugger loaded successfully');
+                };
+                script.onerror = function() {
+                    console.error('Failed to load Eruda');
+                    document.getElementById('eruda-status').textContent = 'Failed to load';
+                };
+            } else {
+                // Toggle Eruda visibility
+                if (window.eruda) {
+                    window.eruda.show();
+                }
+            }
+        }
+
+        // Toggle debug info panel
+        function toggleDebugInfo() {
+            const debugInfo = document.getElementById('debug-info');
+            debugInfo.classList.toggle('open');
+        }
+
         // Toggle developer tools
         function toggleDevTools() {
             const devTools = document.getElementById('dev-tools');
@@ -797,6 +964,8 @@
             const settingsBtn = document.getElementById('settings-btn');
             const devTools = document.getElementById('dev-tools');
             const devToolsBtn = document.getElementById('dev-tools-toggle');
+            const debugInfo = document.getElementById('debug-info');
+            const erudaBtn = document.getElementById('eruda-toggle');
             
             if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
                 settingsPanel.classList.remove('open');
@@ -804,6 +973,10 @@
             
             if (!devTools.contains(e.target) && !devToolsBtn.contains(e.target)) {
                 devTools.classList.remove('open');
+            }
+            
+            if (!debugInfo.contains(e.target) && !erudaBtn.contains(e.target)) {
+                debugInfo.classList.remove('open');
             }
         });
 
@@ -819,6 +992,7 @@
             if (e.key === 'Escape') {
                 document.getElementById('settings-panel').classList.remove('open');
                 document.getElementById('dev-tools').classList.remove('open');
+                document.getElementById('debug-info').classList.remove('open');
             }
         });
     </script>

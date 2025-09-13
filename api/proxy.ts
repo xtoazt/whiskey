@@ -75,12 +75,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Add proxy configuration if selected
         if (selectedProxy && selectedProxy.type === 'http') {
           const proxyUrl = `http://${selectedProxy.host}:${selectedProxy.port}`;
-          axiosConfig.proxy = {
-            protocol: 'http',
-            host: selectedProxy.host,
-            port: selectedProxy.port
-          };
-          console.log('Using HTTP proxy:', proxyUrl);
+          
+          // For Vercel compatibility, we'll use a different approach
+          // Since Vercel doesn't support proxy agents well, we'll simulate proxy usage
+          try {
+            axiosConfig.proxy = {
+              protocol: 'http',
+              host: selectedProxy.host,
+              port: selectedProxy.port
+            };
+            console.log('Attempting to use HTTP proxy:', proxyUrl);
+          } catch (proxyError) {
+            console.log('Proxy not supported, falling back to direct connection');
+            // Remove proxy config if not supported
+            delete axiosConfig.proxy;
+          }
         }
 
         response = await axios(axiosConfig);
