@@ -1,7 +1,7 @@
 {
   "name": "whiskey-proxy",
   "version": "1.0.0",
-  "description": "A web proxy service using rotating proxy servers",
+  "description": "A simple URL fetching service that works on Vercel",
   "main": "index.js",
   "scripts": {
     "dev": "npx vercel dev",
