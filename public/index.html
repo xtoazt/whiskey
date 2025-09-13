@@ -559,9 +559,19 @@
         </div>
 
         <div class="setting-group">
+            <label class="setting-label">Select Specific Proxy</label>
+            <select class="setting-select" id="specific-proxy" onchange="selectSpecificProxy()">
+                <option value="">Choose a proxy...</option>
+            </select>
+        </div>
+
+        <div class="setting-group">
             <label class="setting-label">Test Proxy</label>
             <button class="btn btn-go" onclick="testRandomProxy()" style="width: 100%; margin-top: 5px;">
                 Test Random Proxy
+            </button>
+            <button class="btn btn-go" onclick="testSelectedProxy()" style="width: 100%; margin-top: 5px;">
+                Test Selected Proxy
             </button>
         </div>
 
@@ -685,8 +695,20 @@
             // Load proxy stats
             loadProxyStats();
 
+            // Load proxy list for selection
+            loadProxyList();
+
             // Initialize debug tracking
             initializeDebugTracking();
+
+            // Initialize developer tools with default values
+            updateDevTools('current-url', 'No request yet');
+            updateDevTools('proxy-status', '<span class="proxy-status unknown"></span>No proxy selected');
+            updateDevTools('response-time', 'N/A');
+            updateDevTools('http-status', 'N/A');
+            updateDevTools('content-type', 'N/A');
+            updateDevTools('proxy-stats-detail', 'Loading...');
+            updateDevTools('last-error', 'None');
         });
 
         // Initialize debug tracking
@@ -891,14 +913,38 @@
         // Load proxy stats
         async function loadProxyStats() {
             try {
+                console.log('Loading proxy stats...');
                 const response = await fetch('/api/proxy-stats');
                 const data = await response.json();
+                console.log('Proxy stats response:', data);
+                
                 if (data.stats) {
                     proxyStats = data.stats;
                     updateProxyStats();
+                    updateDevTools('proxy-stats-detail', `${proxyStats.healthy || 0}/${proxyStats.total || 0} healthy`);
+                } else {
+                    console.log('No stats in response, using fallback');
+                    // Fallback stats
+                    proxyStats = {
+                        total: 100,
+                        healthy: 0,
+                        unhealthy: 0,
+                        untested: 100
+                    };
+                    updateProxyStats();
+                    updateDevTools('proxy-stats-detail', '0/100 healthy');
                 }
             } catch (error) {
                 console.error('Failed to load proxy stats:', error);
+                // Fallback stats on error
+                proxyStats = {
+                    total: 100,
+                    healthy: 0,
+                    unhealthy: 0,
+                    untested: 100
+                };
+                updateProxyStats();
+                updateDevTools('proxy-stats-detail', 'Error loading stats');
             }
         }
 
@@ -908,6 +954,50 @@
             document.getElementById('healthy-proxies').textContent = proxyStats.healthy || '-';
             document.getElementById('unhealthy-proxies').textContent = proxyStats.unhealthy || '-';
             document.getElementById('untested-proxies').textContent = proxyStats.untested || '-';
+        }
+
+        // Load proxy list for selection
+        async function loadProxyList() {
+            try {
+                const response = await fetch('/api/proxy-stats');
+                const data = await response.json();
+                const select = document.getElementById('specific-proxy');
+                
+                // Clear existing options
+                select.innerHTML = '<option value="">Choose a proxy...</option>';
+                
+                if (data.proxies && data.proxies.length > 0) {
+                    data.proxies.forEach((proxy, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = `${proxy.host}:${proxy.port} (${proxy.country})`;
+                        select.appendChild(option);
+                    });
+                } else {
+                    // Fallback: create options for first 20 proxies
+                    for (let i = 0; i < 20; i++) {
+                        const option = document.createElement('option');
+                        option.value = i;
+                        option.textContent = `Proxy ${i + 1}`;
+                        select.appendChild(option);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load proxy list:', error);
+            }
+        }
+
+        // Select specific proxy
+        function selectSpecificProxy() {
+            const select = document.getElementById('specific-proxy');
+            const selectedIndex = select.value;
+            
+            if (selectedIndex) {
+                console.log(`Selected proxy index: ${selectedIndex}`);
+                updateDevTools('proxy-status', `<span class="proxy-status unknown"></span>Proxy ${selectedIndex} selected`);
+            } else {
+                updateDevTools('proxy-status', '<span class="proxy-status unknown"></span>No proxy selected');
+            }
         }
 
         // Test random proxy
@@ -931,6 +1021,42 @@
                 } else {
                     showError(`❌ Proxy ${data.proxy.host}:${data.proxy.port} failed: ${data.error}`);
                     console.log('Proxy test failed:', data);
+                }
+            } catch (error) {
+                showError(`❌ Proxy test error: ${error.message}`);
+                console.error('Proxy test error:', error);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        }
+
+        // Test selected proxy
+        async function testSelectedProxy() {
+            const select = document.getElementById('specific-proxy');
+            const selectedIndex = select.value;
+            
+            if (!selectedIndex) {
+                showError('Please select a proxy first');
+                return;
+            }
+            
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'Testing...';
+            
+            try {
+                const response = await fetch(`/api/test-proxy?proxyIndex=${selectedIndex}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showError(`✅ Proxy ${data.proxy.host}:${data.proxy.port} is working! Response time: ${data.testResult.responseTime}ms`);
+                    console.log('Selected proxy test successful:', data);
+                } else {
+                    showError(`❌ Proxy ${data.proxy.host}:${data.proxy.port} failed: ${data.error}`);
+                    console.log('Selected proxy test failed:', data);
                 }
             } catch (error) {
                 showError(`❌ Proxy test error: ${error.message}`);
