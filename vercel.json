@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "public": true,
   "functions": {
     "api/proxy.ts": {
       "maxDuration": 30
