@@ -19,23 +19,5 @@
       "source": "/proxy/(.*)",
       "destination": "/api/proxy?url=$1"
     }
-  ],
-  "routes": [
-    {
-      "src": "/",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/api/proxy-info",
-      "dest": "/api/proxy-info"
-    },
-    {
-      "src": "/api/proxy-stats",
-      "dest": "/api/proxy-stats"
-    },
-    {
-      "src": "/api/proxy-test",
-      "dest": "/api/proxy-test"
-    }
   ]
 }
