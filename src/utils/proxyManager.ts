@@ -30,7 +30,7 @@ export class ProxyManager {
       const agent = this.createProxyAgent(proxy);
       
       const config: AxiosRequestConfig = {
-        agent,
+        httpsAgent: agent,
         timeout: 10000,
         url: 'https://httpbin.org/ip',
         method: 'GET'
@@ -97,6 +97,29 @@ export class ProxyManager {
     return healthyProxies[Math.floor(Math.random() * healthyProxies.length)];
   }
 
+  public getFastestProxy(): ProxyServer | null {
+    const healthyProxies = this.proxies.filter(p => p.isHealthy !== false);
+    
+    if (healthyProxies.length === 0) {
+      // If no healthy proxies, return the one with best historical performance
+      return this.proxies.sort((a, b) => {
+        const scoreA = (a.uptime / 100) * (10000 / a.responseTime);
+        const scoreB = (b.uptime / 100) * (10000 / b.responseTime);
+        return scoreB - scoreA;
+      })[0];
+    }
+
+    // Sort by response time (fastest first), then by uptime
+    healthyProxies.sort((a, b) => {
+      if (a.responseTime !== b.responseTime) {
+        return a.responseTime - b.responseTime;
+      }
+      return b.uptime - a.uptime;
+    });
+
+    return healthyProxies[0];
+  }
+
   public getProxyStats() {
     const total = this.proxies.length;
     const healthy = this.proxies.filter(p => p.isHealthy === true).length;
@@ -134,7 +157,7 @@ export class ProxyManager {
     const agent = this.createProxyAgent(targetProxy);
     
     return {
-      agent,
+      httpsAgent: agent,
       timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'

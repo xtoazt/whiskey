@@ -4,7 +4,7 @@
   "description": "A web proxy service using rotating proxy servers",
   "main": "index.js",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "npx vercel dev",
     "build": "tsc",
     "start": "node dist/index.js"
   },
@@ -19,7 +19,8 @@
     "typescript": "^5.0.0"
   },
   "devDependencies": {
-    "@vercel/node": "^3.0.0"
+    "@vercel/node": "^3.0.0",
+    "vercel": "^48.0.0"
   },
   "engines": {
     "node": "18.x"

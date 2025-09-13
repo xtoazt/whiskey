@@ -2,6 +2,9 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { proxyManager } from '../src/utils/proxyManager';
 import axios from 'axios';
 
+// Simple in-memory storage for current proxy (in production, use a database)
+let currentProxy: any = null;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,18 +33,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Get proxy based on preferences
     let proxy;
-    if (proxyType && country) {
-      const proxies = proxyManager.getProxiesByType(proxyType as any)
-        .filter(p => p.country === country);
-      proxy = proxies[Math.floor(Math.random() * proxies.length)];
-    } else if (proxyType) {
-      const proxies = proxyManager.getProxiesByType(proxyType as any);
-      proxy = proxies[Math.floor(Math.random() * proxies.length)];
-    } else if (country) {
-      const proxies = proxyManager.getProxiesByCountry(country as string);
-      proxy = proxies[Math.floor(Math.random() * proxies.length)];
-    } else {
-      proxy = proxyManager.getNextProxy();
+    
+    // First, try to use the currently selected proxy if it matches filters
+    if (currentProxy) {
+      const matchesType = !proxyType || currentProxy.type === proxyType;
+      const matchesCountry = !country || currentProxy.country === country;
+      
+      if (matchesType && matchesCountry) {
+        // Find the full proxy object
+        const allProxies = proxyManager.getAllProxies();
+        proxy = allProxies.find(p => p.host === currentProxy.host && p.port === currentProxy.port);
+      }
+    }
+    
+    // If no current proxy or it doesn't match filters, select based on preferences
+    if (!proxy) {
+      if (proxyType && country) {
+        const proxies = proxyManager.getProxiesByType(proxyType as any)
+          .filter(p => p.country === country);
+        proxy = proxies[Math.floor(Math.random() * proxies.length)];
+      } else if (proxyType) {
+        const proxies = proxyManager.getProxiesByType(proxyType as any);
+        proxy = proxies[Math.floor(Math.random() * proxies.length)];
+      } else if (country) {
+        const proxies = proxyManager.getProxiesByCountry(country as string);
+        proxy = proxies[Math.floor(Math.random() * proxies.length)];
+      } else {
+        proxy = proxyManager.getNextProxy();
+      }
     }
 
     if (!proxy) {
@@ -112,4 +131,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       code: error.code
     });
   }
+}
+
+// Function to set current proxy (called from proxy-info endpoint)
+export function setCurrentProxy(proxy: any) {
+  currentProxy = proxy;
+}
+
+// Function to get current proxy
+export function getCurrentProxy() {
+  return currentProxy;
 }
