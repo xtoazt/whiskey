@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import axios from 'axios';
+import { proxyManager } from './utils/proxyManager';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -12,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { url } = req.query;
+    const { url, useProxy = 'true', proxyType = 'random' } = req.query;
     
     if (!url) {
       return res.status(400).json({ error: 'URL parameter is required' });
@@ -27,11 +28,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Invalid URL provided' });
     }
 
-    // Make the request directly (Vercel doesn't support proxy agents)
     const startTime = Date.now();
-    
     console.log('Fetching URL:', targetUrl);
     
+    // Select proxy based on type
+    let selectedProxy = null;
+    if (useProxy === 'true') {
+      if (proxyType === 'fastest') {
+        selectedProxy = proxyManager.getFastestProxy();
+      } else if (proxyType === 'random') {
+        selectedProxy = proxyManager.getRandomProxy();
+      } else {
+        selectedProxy = proxyManager.getNextProxy();
+      }
+    }
+
+    console.log('Using proxy:', selectedProxy ? `${selectedProxy.host}:${selectedProxy.port}` : 'none');
+
+    // Make the request
     const response = await axios({
       url: targetUrl,
       method: req.method,
@@ -45,22 +59,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       timeout: 30000,
       maxRedirects: 5,
-      validateStatus: (status: number) => status < 500, // Don't throw on 4xx errors
+      validateStatus: (status: number) => status < 500,
       httpsAgent: new (require('https').Agent)({
-        rejectUnauthorized: false // Disable SSL verification for problematic certificates
+        rejectUnauthorized: false
       })
     });
 
     const responseTime = Date.now() - startTime;
 
-    // Return response
+    // Return response with proxy info
     res.status(response.status).json({
       data: response.data,
       status: response.status,
       headers: response.headers,
       responseTime: responseTime,
       url: targetUrl,
-      method: req.method
+      method: req.method,
+      proxy: selectedProxy ? {
+        host: selectedProxy.host,
+        port: selectedProxy.port,
+        type: selectedProxy.type,
+        country: selectedProxy.country,
+        speed: selectedProxy.speed
+      } : null,
+      proxyStats: proxyManager.getProxyStats()
     });
 
   } catch (error: any) {
@@ -69,7 +91,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({
       error: 'Request failed',
       message: error.message,
-      code: error.code
+      code: error.code,
+      proxyStats: proxyManager.getProxyStats()
     });
   }
 }

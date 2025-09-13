@@ -1,4 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { proxyManager } from './utils/proxyManager';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -15,36 +16,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Return service statistics
+    const stats = proxyManager.getProxyStats();
+    const proxies = proxyManager.getAllProxies();
+
     res.status(200).json({
-      service: 'Whiskey URL Fetcher',
+      service: 'Whiskey Proxy',
       status: 'online',
-      uptime: '100%',
+      stats: stats,
+      proxies: proxies.slice(0, 10), // Return first 10 proxies as sample
+      totalProxies: proxies.length,
       features: {
+        proxyRotation: true,
+        healthChecking: true,
         urlFetching: true,
-        corsSupport: true,
-        jsonFormatting: true,
-        errorHandling: true
-      },
-      limits: {
-        maxResponseSize: '50MB',
-        timeout: '30 seconds',
-        maxRedirects: 5
-      },
-      supportedMethods: ['GET', 'POST', 'PUT', 'DELETE'],
-      supportedContentTypes: [
-        'application/json',
-        'text/html',
-        'text/plain',
-        'application/xml',
-        'text/xml'
-      ]
+        corsSupport: true
+      }
     });
 
   } catch (error: any) {
-    console.error('Error getting service stats:', error.message);
+    console.error('Error getting proxy stats:', error.message);
     res.status(500).json({
-      error: 'Failed to get service statistics',
+      error: 'Failed to get proxy statistics',
       message: error.message
     });
   }
