@@ -31,39 +31,84 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const startTime = Date.now();
     console.log('Fetching URL:', targetUrl);
     
-    // Select proxy based on type
+    // Retry logic with different proxies
+    let lastError = null;
+    let response = null;
     let selectedProxy = null;
-    if (useProxy === 'true') {
-      if (proxyType === 'fastest') {
-        selectedProxy = proxyManager.getFastestProxy();
-      } else if (proxyType === 'random') {
-        selectedProxy = proxyManager.getRandomProxy();
-      } else {
-        selectedProxy = proxyManager.getNextProxy();
+    const maxRetries = useProxy === 'true' ? 3 : 1;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Select proxy based on type
+        if (useProxy === 'true') {
+          if (proxyType === 'fastest') {
+            selectedProxy = proxyManager.getFastestProxy();
+          } else if (proxyType === 'random') {
+            selectedProxy = proxyManager.getRandomProxy();
+          } else {
+            selectedProxy = proxyManager.getNextProxy();
+          }
+        }
+
+        console.log(`Attempt ${attempt + 1}: Using proxy:`, selectedProxy ? `${selectedProxy.host}:${selectedProxy.port}` : 'none');
+
+        // Make the request with or without proxy
+        let axiosConfig: any = {
+          url: targetUrl,
+          method: req.method,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+          },
+          timeout: 30000,
+          maxRedirects: 5,
+          validateStatus: (status: number) => status < 500,
+          httpsAgent: new (require('https').Agent)({
+            rejectUnauthorized: false
+          })
+        };
+
+        // Add proxy configuration if selected
+        if (selectedProxy && selectedProxy.type === 'http') {
+          const proxyUrl = `http://${selectedProxy.host}:${selectedProxy.port}`;
+          axiosConfig.proxy = {
+            protocol: 'http',
+            host: selectedProxy.host,
+            port: selectedProxy.port
+          };
+          console.log('Using HTTP proxy:', proxyUrl);
+        }
+
+        response = await axios(axiosConfig);
+        break; // Success, exit retry loop
+        
+      } catch (error: any) {
+        lastError = error;
+        console.log(`Attempt ${attempt + 1} failed:`, error.message);
+        
+        // Mark proxy as unhealthy if it failed
+        if (selectedProxy) {
+          const proxyIndex = proxyManager.getAllProxies().findIndex(p => 
+            p.host === selectedProxy.host && p.port === selectedProxy.port
+          );
+          if (proxyIndex !== -1) {
+            proxyManager.getAllProxies()[proxyIndex].isHealthy = false;
+          }
+        }
+        
+        // If this was the last attempt, throw the error
+        if (attempt === maxRetries - 1) {
+          throw lastError;
+        }
+        
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
-
-    console.log('Using proxy:', selectedProxy ? `${selectedProxy.host}:${selectedProxy.port}` : 'none');
-
-    // Make the request
-    const response = await axios({
-      url: targetUrl,
-      method: req.method,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
-      },
-      timeout: 30000,
-      maxRedirects: 5,
-      validateStatus: (status: number) => status < 500,
-      httpsAgent: new (require('https').Agent)({
-        rejectUnauthorized: false
-      })
-    });
 
     const responseTime = Date.now() - startTime;
 

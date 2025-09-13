@@ -42,24 +42,37 @@ class ProxyManager {
 
   private async checkProxyHealth() {
     const testUrl = 'https://httpbin.org/ip';
-    const promises = this.proxies.slice(0, 10).map(async (proxy, index) => {
+    const promises = this.proxies.slice(0, 20).map(async (proxy, index) => {
       try {
         const startTime = Date.now();
-        const response = await fetch(testUrl, {
+        
+        // Test with axios using the proxy
+        const axios = require('axios');
+        const response = await axios({
+          url: testUrl,
           method: 'GET',
-          // Note: In a real implementation, you'd use the proxy here
-          // For Vercel, we'll simulate health checking
+          proxy: {
+            protocol: 'http',
+            host: proxy.host,
+            port: proxy.port
+          },
+          timeout: 10000,
+          validateStatus: (status: number) => status < 500
         });
+        
         const responseTime = Date.now() - startTime;
         
-        if (response.ok) {
+        if (response.status === 200) {
           this.proxies[index].speed = responseTime;
           this.proxies[index].isHealthy = true;
+          console.log(`Proxy ${proxy.host}:${proxy.port} is healthy (${responseTime}ms)`);
         } else {
           this.proxies[index].isHealthy = false;
+          console.log(`Proxy ${proxy.host}:${proxy.port} returned status ${response.status}`);
         }
       } catch (error) {
         this.proxies[index].isHealthy = false;
+        console.log(`Proxy ${proxy.host}:${proxy.port} failed health check:`, error.message);
       }
     });
 

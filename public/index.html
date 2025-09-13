@@ -268,10 +268,176 @@
             font-size: 14px;
             z-index: 1001;
             display: none;
+            max-width: 80%;
+            word-wrap: break-word;
         }
 
         .error-message.show {
             display: block;
+        }
+
+        .dev-tools {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 1000;
+            min-width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .dev-tools.open {
+            display: block;
+        }
+
+        .dev-tools h4 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .dev-tools-section {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .dev-tools-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .dev-tools-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .dev-tools-value {
+            font-size: 12px;
+            color: #fff;
+            font-family: 'Monaco', 'Menlo', monospace;
+            word-break: break-all;
+        }
+
+        .dev-tools-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dev-tools-toggle:hover {
+            background: #1d4ed8;
+        }
+
+        .response-info {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .response-info h5 {
+            color: #fff;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .response-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 11px;
+        }
+
+        .response-info-label {
+            color: #888;
+        }
+
+        .response-info-value {
+            color: #fff;
+            font-family: 'Monaco', 'Menlo', monospace;
+        }
+
+        .proxy-status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .proxy-status.healthy {
+            background: #10b981;
+        }
+
+        .proxy-status.unhealthy {
+            background: #ef4444;
+        }
+
+        .proxy-status.unknown {
+            background: #f59e0b;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            display: none;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: #fff;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #333;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        .loading-text {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .loading-details {
+            font-size: 12px;
+            color: #888;
         }
     </style>
 </head>
@@ -352,6 +518,59 @@
 
     <div class="error-message" id="error-message"></div>
 
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text" id="loading-text">Loading...</div>
+            <div class="loading-details" id="loading-details">Connecting through proxy...</div>
+        </div>
+    </div>
+
+    <button class="dev-tools-toggle" id="dev-tools-toggle" onclick="toggleDevTools()">
+        🔧
+    </button>
+
+    <div class="dev-tools" id="dev-tools">
+        <h4>Developer Tools</h4>
+        
+        <div class="dev-tools-section">
+            <div class="dev-tools-label">Current Request</div>
+            <div class="dev-tools-value" id="current-url">-</div>
+        </div>
+
+        <div class="dev-tools-section">
+            <div class="dev-tools-label">Proxy Status</div>
+            <div class="dev-tools-value" id="proxy-status">
+                <span class="proxy-status unknown"></span>Unknown
+            </div>
+        </div>
+
+        <div class="dev-tools-section">
+            <div class="dev-tools-label">Response Time</div>
+            <div class="dev-tools-value" id="response-time">-</div>
+        </div>
+
+        <div class="dev-tools-section">
+            <div class="dev-tools-label">HTTP Status</div>
+            <div class="dev-tools-value" id="http-status">-</div>
+        </div>
+
+        <div class="dev-tools-section">
+            <div class="dev-tools-label">Content Type</div>
+            <div class="dev-tools-value" id="content-type">-</div>
+        </div>
+
+        <div class="dev-tools-section">
+            <div class="dev-tools-label">Proxy Stats</div>
+            <div class="dev-tools-value" id="proxy-stats-detail">-</div>
+        </div>
+
+        <div class="dev-tools-section">
+            <div class="dev-tools-label">Last Error</div>
+            <div class="dev-tools-value" id="last-error">None</div>
+        </div>
+    </div>
+
     <script>
         let currentUrl = '';
         let proxyStats = {};
@@ -382,6 +601,9 @@
             const welcomeScreen = document.getElementById('welcome-screen');
             const contentIframe = document.getElementById('content-iframe');
             const proxyInfo = document.getElementById('proxy-info');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingText = document.getElementById('loading-text');
+            const loadingDetails = document.getElementById('loading-details');
             
             const url = urlInput.value.trim();
             if (!url) {
@@ -395,13 +617,23 @@
                 targetUrl = 'https://' + url;
             }
 
+            // Update dev tools
+            updateDevTools('current-url', targetUrl);
+            updateDevTools('last-error', 'None');
+
             goBtn.disabled = true;
             goBtn.innerHTML = '<div class="loading"></div>';
+            loadingOverlay.classList.add('show');
+            loadingText.textContent = 'Connecting...';
+            loadingDetails.textContent = 'Establishing connection through proxy...';
             
             try {
                 const proxyType = document.getElementById('proxy-type').value;
                 const useProxy = proxyType !== 'none';
                 
+                loadingDetails.textContent = useProxy ? `Using ${proxyType} proxy...` : 'Direct connection...';
+                
+                const startTime = Date.now();
                 const response = await fetch(`/api/proxy?url=${encodeURIComponent(targetUrl)}&useProxy=${useProxy}&proxyType=${proxyType}`, {
                     method: 'GET',
                     headers: {
@@ -410,6 +642,12 @@
                 });
                 
                 const data = await response.json();
+                const responseTime = Date.now() - startTime;
+                
+                // Update dev tools with response info
+                updateDevTools('response-time', `${responseTime}ms`);
+                updateDevTools('http-status', `${response.status} ${response.statusText || ''}`);
+                updateDevTools('content-type', data.headers?.['content-type'] || 'Unknown');
                 
                 if (response.ok) {
                     // Hide welcome screen and show iframe
@@ -419,28 +657,85 @@
                     // Update proxy info
                     if (data.proxy) {
                         proxyInfo.textContent = `Proxy: ${data.proxy.host}:${data.proxy.port} (${data.proxy.country})`;
+                        updateDevTools('proxy-status', `<span class="proxy-status healthy"></span>${data.proxy.host}:${data.proxy.port}`);
                     } else {
                         proxyInfo.textContent = 'No proxy';
+                        updateDevTools('proxy-status', '<span class="proxy-status unknown"></span>Direct connection');
                     }
                     
                     // Update proxy stats
                     proxyStats = data.proxyStats || {};
                     updateProxyStats();
+                    updateDevTools('proxy-stats-detail', `${proxyStats.healthy || 0}/${proxyStats.total || 0} healthy`);
                     
-                    // Set iframe content
-                    const blob = new Blob([data.data], { type: 'text/html' });
-                    const blobUrl = URL.createObjectURL(blob);
-                    contentIframe.src = blobUrl;
+                    // Handle different content types
+                    const contentType = data.headers?.['content-type'] || '';
+                    if (contentType.includes('text/html')) {
+                        // For HTML content, create a proper document
+                        const htmlContent = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+                        const blob = new Blob([htmlContent], { type: 'text/html' });
+                        const blobUrl = URL.createObjectURL(blob);
+                        contentIframe.src = blobUrl;
+                    } else if (contentType.includes('application/json')) {
+                        // For JSON content, display formatted
+                        const jsonContent = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+                        const formattedHtml = `
+                            <html>
+                                <head>
+                                    <title>JSON Response</title>
+                                    <style>
+                                        body { font-family: monospace; background: #1a1a1a; color: #fff; padding: 20px; }
+                                        pre { white-space: pre-wrap; word-wrap: break-word; }
+                                    </style>
+                                </head>
+                                <body>
+                                    <h2>JSON Response</h2>
+                                    <pre>${jsonContent}</pre>
+                                </body>
+                            </html>
+                        `;
+                        const blob = new Blob([formattedHtml], { type: 'text/html' });
+                        const blobUrl = URL.createObjectURL(blob);
+                        contentIframe.src = blobUrl;
+                    } else {
+                        // For other content types, display as text
+                        const textContent = typeof data.data === 'string' ? data.data : JSON.stringify(data.data, null, 2);
+                        const formattedHtml = `
+                            <html>
+                                <head>
+                                    <title>Response</title>
+                                    <style>
+                                        body { font-family: monospace; background: #1a1a1a; color: #fff; padding: 20px; }
+                                        pre { white-space: pre-wrap; word-wrap: break-word; }
+                                    </style>
+                                </head>
+                                <body>
+                                    <h2>Response</h2>
+                                    <pre>${textContent}</pre>
+                                </body>
+                            </html>
+                        `;
+                        const blob = new Blob([formattedHtml], { type: 'text/html' });
+                        const blobUrl = URL.createObjectURL(blob);
+                        contentIframe.src = blobUrl;
+                    }
                     
                     currentUrl = targetUrl;
                 } else {
-                    showError(`Request failed: ${data.error || 'Unknown error'}`);
+                    const errorMsg = `Request failed: ${data.error || 'Unknown error'}`;
+                    showError(errorMsg);
+                    updateDevTools('last-error', errorMsg);
+                    updateDevTools('proxy-status', '<span class="proxy-status unhealthy"></span>Request failed');
                 }
             } catch (error) {
-                showError(`Network error: ${error.message}`);
+                const errorMsg = `Network error: ${error.message}`;
+                showError(errorMsg);
+                updateDevTools('last-error', errorMsg);
+                updateDevTools('proxy-status', '<span class="proxy-status unhealthy"></span>Network error');
             } finally {
                 goBtn.disabled = false;
                 goBtn.textContent = 'Go';
+                loadingOverlay.classList.remove('show');
             }
         }
 
@@ -482,13 +777,48 @@
             }, 5000);
         }
 
+        // Toggle developer tools
+        function toggleDevTools() {
+            const devTools = document.getElementById('dev-tools');
+            devTools.classList.toggle('open');
+        }
+
+        // Update developer tools
+        function updateDevTools(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.innerHTML = value;
+            }
+        }
+
         // Close settings when clicking outside
         document.addEventListener('click', function(e) {
             const settingsPanel = document.getElementById('settings-panel');
             const settingsBtn = document.getElementById('settings-btn');
+            const devTools = document.getElementById('dev-tools');
+            const devToolsBtn = document.getElementById('dev-tools-toggle');
             
             if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
                 settingsPanel.classList.remove('open');
+            }
+            
+            if (!devTools.contains(e.target) && !devToolsBtn.contains(e.target)) {
+                devTools.classList.remove('open');
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + K to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('url-input').focus();
+            }
+            
+            // Escape to close panels
+            if (e.key === 'Escape') {
+                document.getElementById('settings-panel').classList.remove('open');
+                document.getElementById('dev-tools').classList.remove('open');
             }
         });
     </script>
