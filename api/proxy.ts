@@ -1,9 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { proxyManager } from '../src/utils/proxyManager';
 import axios from 'axios';
-
-// Simple in-memory storage for current proxy (in production, use a database)
-let currentProxy: any = null;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
@@ -16,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { url, method = 'GET', headers = {}, data, proxyType, country } = req.query;
+    const { url } = req.query;
     
     if (!url) {
       return res.status(400).json({ error: 'URL parameter is required' });
@@ -31,114 +27,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Invalid URL provided' });
     }
 
-    // Get proxy based on preferences
-    let proxy;
+    // Make the request directly (Vercel doesn't support proxy agents)
+    const startTime = Date.now();
     
-    // First, try to use the currently selected proxy if it matches filters
-    if (currentProxy) {
-      const matchesType = !proxyType || currentProxy.type === proxyType;
-      const matchesCountry = !country || currentProxy.country === country;
-      
-      if (matchesType && matchesCountry) {
-        // Find the full proxy object
-        const allProxies = proxyManager.getAllProxies();
-        proxy = allProxies.find(p => p.host === currentProxy.host && p.port === currentProxy.port);
-      }
-    }
-    
-    // If no current proxy or it doesn't match filters, select based on preferences
-    if (!proxy) {
-      if (proxyType && country) {
-        const proxies = proxyManager.getProxiesByType(proxyType as any)
-          .filter(p => p.country === country);
-        proxy = proxies[Math.floor(Math.random() * proxies.length)];
-      } else if (proxyType) {
-        const proxies = proxyManager.getProxiesByType(proxyType as any);
-        proxy = proxies[Math.floor(Math.random() * proxies.length)];
-      } else if (country) {
-        const proxies = proxyManager.getProxiesByCountry(country as string);
-        proxy = proxies[Math.floor(Math.random() * proxies.length)];
-      } else {
-        proxy = proxyManager.getNextProxy();
-      }
-    }
-
-    if (!proxy) {
-      return res.status(503).json({ error: 'No proxy available' });
-    }
-
-    // Create axios config with proxy
-    const config = proxyManager.createAxiosConfig(proxy);
-    
-    // Prepare request config
-    const requestConfig = {
-      ...config,
+    const response = await axios({
       url: targetUrl,
-      method: method as string,
+      method: req.method,
       headers: {
-        ...config.headers,
-        ...headers
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        ...req.headers
       },
-      data: data ? JSON.parse(data as string) : undefined,
+      timeout: 30000,
       maxRedirects: 5,
       validateStatus: (status: number) => status < 500 // Don't throw on 4xx errors
-    };
+    });
 
-    // Make the request
-    const startTime = Date.now();
-    const response = await axios(requestConfig);
     const responseTime = Date.now() - startTime;
-
-    // Update proxy stats
-    proxy.responseTime = responseTime;
-    proxy.lastChecked = new Date();
-    proxy.isHealthy = true;
 
     // Return response
     res.status(response.status).json({
       data: response.data,
       status: response.status,
       headers: response.headers,
-      proxy: {
-        host: proxy.host,
-        port: proxy.port,
-        type: proxy.type,
-        country: proxy.country,
-        responseTime: responseTime
-      },
-      responseTime: responseTime
+      responseTime: responseTime,
+      url: targetUrl,
+      method: req.method
     });
 
   } catch (error: any) {
-    console.error('Proxy request failed:', error.message);
+    console.error('Request failed:', error.message);
     
-    // Mark proxy as unhealthy if it was used
-    if (error.config?.agent) {
-      // Try to find which proxy was used and mark it as unhealthy
-      const usedProxy = proxyManager.getAllProxies().find(p => 
-        error.config.url?.includes(p.host) || 
-        error.message?.includes(p.host)
-      );
-      if (usedProxy) {
-        usedProxy.isHealthy = false;
-        usedProxy.lastChecked = new Date();
-      }
-    }
-
     res.status(500).json({
-      error: 'Proxy request failed',
+      error: 'Request failed',
       message: error.message,
       code: error.code
     });
   }
-}
-
-// Function to set current proxy (called from proxy-info endpoint)
-export function setCurrentProxy(proxy: any) {
-  currentProxy = proxy;
-}
-
-// Function to get current proxy
-export function getCurrentProxy() {
-  return currentProxy;
 }

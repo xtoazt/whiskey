@@ -1,178 +1,114 @@
-# 🥃 Whiskey Proxy Service
+# Whiskey URL Fetcher
 
-A high-performance web proxy service that uses rotating proxy servers to route requests. Built for Vercel deployment with TypeScript and modern web technologies.
+A simple, clean URL fetching service that works perfectly on Vercel. This service allows you to fetch any URL and get the response, with CORS support and JSON formatting.
 
-## Features
+## ✨ Features
 
-- **Rotating Proxy Pool**: 100+ proxy servers from around the world
-- **Multiple Proxy Types**: HTTP, SOCKS4, and SOCKS5 support
-- **Health Monitoring**: Automatic proxy health checking and rotation
-- **Geographic Filtering**: Filter proxies by country
-- **Performance Metrics**: Real-time statistics and performance monitoring
-- **RESTful API**: Easy integration with any application
-- **Modern Web Interface**: Beautiful, responsive UI for testing and management
+- **Simple Interface**: Clean, minimal UI with just a search bar and buttons
+- **URL Fetching**: Fetch any URL and get the response
+- **CORS Support**: Works from any domain without CORS issues
+- **JSON Formatting**: Automatically formats JSON responses for better readability
+- **Error Handling**: Comprehensive error handling and status reporting
+- **Vercel Compatible**: Designed specifically to work on Vercel's serverless platform
 
-## API Endpoints
+## 🚀 How to Use
 
-### 1. Proxy Request
-```
-GET /api/proxy?url=<target_url>&method=<http_method>&proxyType=<type>&country=<country>
-```
+1. **Enter a URL** in the search bar
+2. **Click "Fetch"** to get the response
+3. **View the result** in a clean, formatted display
+
+### Example URLs to try:
+- `https://httpbin.org/ip` - Get your IP address
+- `https://httpbin.org/json` - Get JSON data
+- `https://api.github.com/users/octocat` - GitHub API
+- `https://jsonplaceholder.typicode.com/posts/1` - JSON Placeholder
+
+## 🛠 API Endpoints
+
+### GET `/api/proxy`
+Fetch any URL and return the response.
 
 **Parameters:**
-- `url` (required): Target URL to proxy
-- `method`: HTTP method (GET, POST, PUT, DELETE) - default: GET
-- `proxyType`: Proxy type filter (http, socks4, socks5)
-- `country`: Country code filter (US, CA, GB, etc.)
-- `data`: JSON data for POST/PUT requests
+- `url` (required): The URL to fetch
 
 **Example:**
-```bash
-curl "https://your-domain.vercel.app/api/proxy?url=https://httpbin.org/ip&proxyType=http&country=US"
+```
+GET /api/proxy?url=https://httpbin.org/ip
 ```
 
-### 2. Proxy Information
-```
-GET /api/proxy-info?type=<proxy_type>&country=<country>&limit=<number>
-```
-
-Returns detailed information about available proxies with filtering options.
-
-### 3. Proxy Statistics
-```
-GET /api/proxy-stats
-```
-
-Returns comprehensive statistics about proxy performance, health, and distribution.
-
-### 4. Proxy Testing
-```
-GET /api/proxy-test?testUrl=<url>&count=<number>&proxyType=<type>&country=<country>
+**Response:**
+```json
+{
+  "data": { "origin": "1.2.3.4" },
+  "status": 200,
+  "headers": { ... },
+  "responseTime": 150,
+  "url": "https://httpbin.org/ip",
+  "method": "GET"
+}
 ```
 
-Tests multiple proxies and returns performance metrics.
+### GET `/api/proxy-info`
+Get service information.
 
-## Deployment on Vercel
+### GET `/api/proxy-stats`
+Get service statistics.
 
-1. **Install Dependencies:**
+### GET `/api/proxy-test`
+Test the service with multiple requests.
+
+## 🚀 Deployment
+
+This project is designed to work on Vercel:
+
+1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. **Build the Project:**
+2. **Deploy to Vercel:**
    ```bash
-   npm run build
+   npx vercel
    ```
 
-3. **Deploy to Vercel:**
-   ```bash
-   npx vercel --prod
-   ```
+3. **Or connect your GitHub repository to Vercel for automatic deployments**
 
-4. **Environment Variables:**
-   No environment variables required - the service uses the provided proxy list.
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 whiskey/
-├── api/                    # Vercel serverless functions
-│   ├── proxy.ts           # Main proxy handler
-│   ├── proxy-info.ts      # Proxy information endpoint
-│   ├── proxy-stats.ts     # Statistics endpoint
-│   └── proxy-test.ts      # Testing endpoint
-├── src/                   # Source code
-│   ├── config/
-│   │   └── proxies.ts     # Proxy server configuration
-│   └── utils/
-│       └── proxyManager.ts # Proxy management logic
-├── index.html             # Web interface
-├── package.json           # Dependencies and scripts
-├── tsconfig.json          # TypeScript configuration
-├── vercel.json            # Vercel deployment configuration
-└── README.md              # This file
+├── api/
+│   ├── proxy.ts          # Main URL fetching endpoint
+│   ├── proxy-info.ts     # Service information
+│   ├── proxy-stats.ts    # Service statistics
+│   └── proxy-test.ts     # Testing endpoint
+├── index.html            # Frontend interface
+├── vercel.json          # Vercel configuration
+├── package.json         # Dependencies
+└── README.md           # This file
 ```
 
-## Usage Examples
+## 🔧 Configuration
 
-### JavaScript/Node.js
-```javascript
-const response = await fetch('https://your-domain.vercel.app/api/proxy?url=https://httpbin.org/ip&proxyType=http&country=US');
-const data = await response.json();
-console.log(data);
-```
+The service is configured in `vercel.json`:
 
-### Python
-```python
-import requests
+- **Functions**: Serverless function configurations
+- **Rewrites**: URL rewriting rules for clean URLs
+- **Routes**: Routing configuration
 
-response = requests.get('https://your-domain.vercel.app/api/proxy', params={
-    'url': 'https://httpbin.org/ip',
-    'proxyType': 'http',
-    'country': 'US'
-})
-print(response.json())
-```
+## 🌟 Why This Approach?
 
-### cURL
-```bash
-curl "https://your-domain.vercel.app/api/proxy?url=https://httpbin.org/ip&method=GET&proxyType=socks5&country=CA"
-```
+This service uses a different approach than traditional proxy servers:
 
-## Proxy Types Supported
+1. **Vercel Compatible**: Works within Vercel's serverless constraints
+2. **No Proxy Servers**: Uses direct HTTP requests instead of proxy servers
+3. **CORS Friendly**: Handles CORS issues by acting as a server-side fetcher
+4. **Simple & Fast**: Minimal overhead and fast responses
 
-- **HTTP Proxies**: Standard HTTP proxy servers
-- **SOCKS4**: SOCKS4 proxy protocol
-- **SOCKS5**: SOCKS5 proxy protocol with authentication support
+## 📝 License
 
-## Countries Available
+MIT License - feel free to use this project for your own needs!
 
-The service includes proxies from 50+ countries including:
-- United States (US)
-- Canada (CA)
-- United Kingdom (GB)
-- Germany (DE)
-- France (FR)
-- Japan (JP)
-- And many more...
+## 🤝 Contributing
 
-## Performance Features
-
-- **Automatic Health Checking**: Proxies are tested every 5 minutes
-- **Smart Rotation**: Best performing proxies are prioritized
-- **Response Time Tracking**: Real-time performance metrics
-- **Uptime Monitoring**: Track proxy reliability
-- **Geographic Distribution**: Global proxy coverage
-
-## Rate Limits
-
-- Maximum 20 concurrent proxy tests
-- 30-second timeout for proxy requests
-- Automatic retry with different proxies on failure
-
-## Security
-
-- CORS enabled for cross-origin requests
-- Input validation and sanitization
-- No logging of sensitive data
-- Automatic proxy rotation for anonymity
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
-
-## Support
-
-For issues and questions, please open an issue on GitHub or contact the maintainers.
-
----
-
-**Note**: This service is for educational and legitimate use cases only. Please respect the terms of service of target websites and applicable laws.
+Contributions are welcome! Please feel free to submit a Pull Request.
