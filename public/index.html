@@ -311,7 +311,12 @@
             showStatus('Fetching...', 'loading');
             
             try {
-                const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+                const response = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -333,10 +338,10 @@
                     
                     resultContent.textContent = content;
                     requestInfo.innerHTML = `
-                        <strong>URL:</strong> ${data.url}<br>
+                        <strong>URL:</strong> ${data.url || data.fetchedUrl}<br>
                         <strong>Status:</strong> ${data.status}<br>
                         <strong>Response Time:</strong> ${data.responseTime}ms<br>
-                        <strong>Method:</strong> ${data.method}
+                        <strong>Method:</strong> ${data.method || 'GET'}
                     `;
                 } else {
                     showStatus('Request failed', 'error');
@@ -345,7 +350,18 @@
                 }
             } catch (error) {
                 showStatus('Request failed', 'error');
-                resultContent.textContent = `Error: ${error.message}`;
+                let errorMessage = error.message;
+                
+                // Handle specific certificate errors
+                if (error.message.includes('certificate') || error.message.includes('Hostname/IP does not match')) {
+                    errorMessage = 'Certificate error: The target URL may have SSL issues or be unreachable.';
+                } else if (error.message.includes('CORS')) {
+                    errorMessage = 'CORS error: The target URL does not allow cross-origin requests.';
+                } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+                    errorMessage = 'Network error: Unable to connect to the target URL.';
+                }
+                
+                resultContent.textContent = `Error: ${errorMessage}`;
                 requestInfo.innerHTML = '';
             } finally {
                 searchBtn.disabled = false;
